@@ -1,0 +1,546 @@
+local OrionLib = loadstring(game:HttpGet(("https://raw.githubusercontent.com/Giangplay/Script/main/Orion_Library_PE_V2.lua")))()
+local Window = OrionLib:MakeWindow({IntroText = "Ninja Tycoon", IntroIcon = "rbxassetid://",Name = ("Astral Hub - Ninja Tycoon ".." | ".. identifyexecutor()),IntroToggleIcon = "rbxassetid://", HidePremium = false, SaveConfig = false, IntroEnabled = true, ConfigFolder = "slap battles"})
+
+local Tab = Window:MakeTab({
+	Name = "Main",
+	Icon = "",
+	PremiumOnly = false
+})
+
+local Section = Tab:AddSection({
+	Name = "Tycoons"
+})
+
+--[[
+Name = <string> - The name of the section.
+]]
+
+-- Coloque isso no início do script, junto com as variáveis
+local clansList = {
+    "Akatsuke",
+    "Hotate Clan",
+    "Hyago Clan",
+    "Kazeka Clan",
+    "Otsutsushi Clan",
+    "Sarukobi Clan",
+    "Sonju Clan",
+    "Uchika Clan",
+    "Uzumonki Clan"
+}
+
+-- Coloque isso dentro da sua Tab
+Tab:AddButton({
+	Name = "Collect All Tycoons Money",
+	Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        
+        -- Verifica se o personagem existe
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then 
+            return 
+        end
+
+        local rootPart = player.Character.HumanoidRootPart
+        local tycoonKit = workspace:FindFirstChild("Zednov's Tycoon Kit")
+
+        if tycoonKit and tycoonKit:FindFirstChild("Tycoons") then
+            local tycoonsFolder = tycoonKit.Tycoons
+            
+            -- Loop exato do script que funcionava
+            for _, clanName in pairs(clansList) do
+                local clanModel = tycoonsFolder:FindFirstChild(clanName)
+                
+                if clanModel and clanModel:FindFirstChild("Essentials") then
+                    local giverPart = clanModel.Essentials:FindFirstChild("Giver")
+                    
+                    if giverPart then
+                        firetouchinterest(rootPart, giverPart, 0)
+                        task.wait() -- Pequeno delay para garantir o toque
+                        firetouchinterest(rootPart, giverPart, 1)
+                    end
+                end
+            end
+        end
+  	end    
+})
+
+
+Tab:AddToggle({
+	Name = "Inf Health (WIP)",
+	Default = false,
+	Callback = function(Value)
+		print(Value)
+	end    
+})
+
+--[[
+Name = <string> - The name of the toggle.
+Default = <bool> - The default value of the toggle.
+Callback = <function> - The function of the toggle.
+]]
+
+local Section = Tab:AddSection({
+	Name = "Player"
+})
+
+--[[
+Name = <string> - The name of the section.
+]]
+
+Tab:AddSlider({
+	Name = "WalkSpeed",
+	Min = 16,
+	Max = 300,
+	Default = 16,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Speed",
+	Callback = function(Value)
+		local player = game:GetService("Players").LocalPlayer
+		if player.Character and player.Character:FindFirstChild("Humanoid") then
+			player.Character.Humanoid.WalkSpeed = Value
+		end
+	end    
+})
+
+-- Variável Global
+getgenv().FlySpeed = 1 
+
+-- 1. SLIDER DE VELOCIDADE
+Tab:AddSlider({
+	Name = "Velocidade de Voo (CFrame)",
+	Min = 0.1,
+	Max = 5, -- 5 já é muito rápido para esse método
+	Default = 1,
+	Color = Color3.fromRGB(0, 255, 255),
+	Increment = 0.1,
+	ValueName = "Speed",
+	Callback = function(Value)
+		getgenv().FlySpeed = Value
+	end    
+})
+
+-- 2. O SCRIPT QUE VOCÊ PEDIU (COM A INTEGRAÇÃO)
+Tab:AddToggle({
+	Name = "Fly & Noclip (PC & Mobile)",
+	Default = false,
+	Callback = function(Value)
+		local Players = game:GetService("Players")
+		local RunService = game:GetService("RunService")
+		local Workspace = game:GetService("Workspace")
+		local UserInputService = game:GetService("UserInputService")
+		
+		local plr = Players.LocalPlayer
+		getgenv().FlyEnabled = Value
+		
+		if Value then
+			-- Função para manter o voo
+			task.spawn(function()
+				while getgenv().FlyEnabled do
+					local char = plr.Character
+					local hum = char and char:FindFirstChild("Humanoid")
+					local root = char and char:FindFirstChild("HumanoidRootPart")
+					local cam = Workspace.CurrentCamera
+
+					if char and hum and root then
+						
+						-- 1. Ativa o Modo "Sem Física" (Para não cair)
+						hum.PlatformStand = true
+						root.Velocity = Vector3.new(0, 0, 0)
+						
+						-- 2. Lógica do Noclip (Atravessar paredes)
+						for _, part in pairs(char:GetChildren()) do
+							if part:IsA("BasePart") then
+								part.CanCollide = false
+							end
+						end
+
+						-- 3. Movimento Universal (Mobile e PC)
+						local moveDir = hum.MoveDirection
+						
+                        -- PEGA A VELOCIDADE DO SLIDER
+                        local currentSpeed = getgenv().FlySpeed
+
+						if moveDir.Magnitude > 0 then
+							-- Se o jogador estiver movendo, atualizamos o CFrame
+							
+                            -- Cálculo da nova posição
+							local newPos = root.Position + (moveDir * currentSpeed)
+							
+							-- Truque para Mobile: Se olhar pra cima e andar, sobe.
+							if cam.CFrame.LookVector.Y ~= 0 then
+								newPos = newPos + Vector3.new(0, cam.CFrame.LookVector.Y * moveDir.Magnitude * currentSpeed, 0)
+							end
+							
+							root.CFrame = CFrame.new(newPos, newPos + cam.CFrame.LookVector)
+						else
+							-- Se estiver parado, mantém a rotação da câmera (Drift Fix)
+							root.CFrame = CFrame.new(root.Position, root.Position + cam.CFrame.LookVector)
+						end
+
+						-- 4. Controles Extras para PC (Espaço/Ctrl)
+						if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+							root.CFrame = root.CFrame + Vector3.new(0, currentSpeed, 0)
+						end
+						if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+							root.CFrame = root.CFrame - Vector3.new(0, currentSpeed, 0)
+						end
+					end
+					
+					-- Executa a cada frame
+					RunService.RenderStepped:Wait()
+				end
+			end)
+		else
+			-- Desativar
+			local char = plr.Character
+			if char and char:FindFirstChild("Humanoid") then
+				char.Humanoid.PlatformStand = false
+				
+				-- Dá um pequeno "empurrão" para destravar a física
+				if char:FindFirstChild("HumanoidRootPart") then
+					char.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+				end
+			end
+		end
+	end    
+})
+
+
+local Tab = Window:MakeTab({
+	Name = "Players",
+	Icon = "",
+	PremiumOnly = false
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Variáveis Globais
+getgenv().SelectedTarget = nil
+getgenv().SpamActive = false
+getgenv().ExternalButtonActive = false
+getgenv().ESPActive = false
+getgenv().ViewActive = false
+
+-- --- FUNÇÕES AUXILIARES ---
+
+-- Função para formatar lista de nomes: "Apelido (@NomeReal)"
+local function GetPlayerOptions()
+    local options = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local displayName = p.DisplayName
+            local realName = p.Name
+            table.insert(options, displayName .. " (@" .. realName .. ")")
+        end
+    end
+    return options
+end
+
+-- Função para extrair o nome real da string do Dropdown
+local function GetPlayerFromOption(optionString)
+    -- Procura o texto que está entre "(@" e ")"
+    local realName = optionString:match("%(@(.*)%)")
+    if realName then
+        return Players:FindFirstChild(realName)
+    end
+    return nil
+end
+
+-- --- COMPONENTES ORION ---
+
+-- 1. TOGGLE: ESP PLAYERS (Acima do Dropdown)
+Tab:AddToggle({
+	Name = "ESP Players (Name + HP)",
+	Default = false,
+	Callback = function(Value)
+		getgenv().ESPActive = Value
+        
+        if Value then
+            -- Loop do ESP
+            task.spawn(function()
+                while getgenv().ESPActive do
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") then
+                            -- Verifica se já tem o ESP, senão cria
+                            if not p.Character.Head:FindFirstChild("OrionESP") then
+                                local bg = Instance.new("BillboardGui")
+                                bg.Name = "OrionESP"
+                                bg.Adornee = p.Character.Head
+                                bg.Size = UDim2.new(0, 200, 0, 50)
+                                bg.StudsOffset = Vector3.new(0, 2, 0)
+                                bg.AlwaysOnTop = true
+                                bg.Parent = p.Character.Head
+                                
+                                local text = Instance.new("TextLabel")
+                                text.Parent = bg
+                                text.Size = UDim2.new(1, 0, 1, 0)
+                                text.BackgroundTransparency = 1
+                                text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                text.TextStrokeTransparency = 0
+                                text.Font = Enum.Font.GothamBold
+                                text.TextSize = 14
+                                text.Name = "Info"
+                            end
+                            
+                            -- Atualiza o Texto (Nome + Vida)
+                            local espTag = p.Character.Head:FindFirstChild("OrionESP")
+                            if espTag and espTag:FindFirstChild("Info") then
+                                local hp = math.floor(p.Character.Humanoid.Health)
+                                espTag.Info.Text = p.Name .. "\nHP: " .. hp
+                                
+                                -- Muda cor baseado na vida (Verde -> Vermelho)
+                                if hp > 50 then
+                                    espTag.Info.TextColor3 = Color3.fromRGB(0, 255, 0)
+                                else
+                                    espTag.Info.TextColor3 = Color3.fromRGB(255, 0, 0)
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.5) -- Atualiza a cada meio segundo para não lagar
+                end
+            end)
+        else
+            -- Remove ESP ao desligar
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("Head") and p.Character.Head:FindFirstChild("OrionESP") then
+                    p.Character.Head.OrionESP:Destroy()
+                end
+            end
+        end
+	end    
+})
+
+-- 2. DROPDOWN (Seleção de Jogador)
+local PlayerDropdown = Tab:AddDropdown({
+	Name = "Select Target",
+	Default = "Select Player",
+	Options = GetPlayerOptions(),
+	Callback = function(Value)
+        local target = GetPlayerFromOption(Value)
+		getgenv().SelectedTarget = target
+		
+        if target then
+            OrionLib:MakeNotification({
+                Name = "Player Selected",
+                Content = "Target: " .. target.DisplayName,
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            
+            -- Se o View Player estiver ligado, atualiza a câmera imediatamente
+            if getgenv().ViewActive then
+                 Camera.CameraSubject = target.Character.Humanoid
+            end
+        end
+	end    
+})
+
+-- Atualização Automática da Lista
+local function UpdateList()
+	PlayerDropdown:Refresh(GetPlayerOptions(), true)
+end
+Players.PlayerAdded:Connect(UpdateList)
+Players.PlayerRemoving:Connect(UpdateList)
+
+-- 3. TOGGLE: VIEW PLAYER (Abaixo do Dropdown)
+Tab:AddToggle({
+	Name = "View Player (Spectate)",
+	Default = false,
+	Callback = function(Value)
+		getgenv().ViewActive = Value
+        
+        if Value then
+            local target = getgenv().SelectedTarget
+            if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+                Camera.CameraSubject = target.Character.Humanoid
+            else
+                OrionLib:MakeNotification({
+                    Name = "Error",
+                    Content = "Select a valid player first!",
+                    Image = "rbxassetid://4483345998",
+                    Time = 3
+                })
+                -- Reseta o toggle visualmente se não tiver target (opcional, mas complexo na lib, deixa assim)
+            end
+            
+            -- Loop para manter a câmera caso o jogador morra/renasça
+            task.spawn(function()
+                while getgenv().ViewActive do
+                    local t = getgenv().SelectedTarget
+                    if t and t.Character and t.Character:FindFirstChild("Humanoid") then
+                        if Camera.CameraSubject ~= t.Character.Humanoid then
+                             Camera.CameraSubject = t.Character.Humanoid
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+            
+        else
+            -- Volta para o LocalPlayer
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                Camera.CameraSubject = LocalPlayer.Character.Humanoid
+            end
+        end
+	end    
+})
+
+-- 4. SECTION: ATTACK TYPES
+local Section = Tab:AddSection({
+	Name = "Attack Types"
+})
+
+-- 5. TOGGLE: SPAM ATTACK
+Tab:AddToggle({
+	Name = "Activate Phoenix Volley Spam",
+	Default = false,
+	Callback = function(Value)
+		getgenv().SpamActive = Value
+        
+        if Value then
+            task.spawn(function()
+                while getgenv().SpamActive do
+                    local target = getgenv().SelectedTarget
+                    -- Verificações de segurança
+                    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+                        local tool = LocalPlayer.Character:FindFirstChild("Phoenix Volley")
+                        -- Tenta achar na Backpack se não estiver equipado
+                        if not tool then tool = LocalPlayer.Backpack:FindFirstChild("Phoenix Volley") end
+                        
+                        -- Se a ferramenta estiver na mão ou backpack
+                        if tool and LocalPlayer.Character:FindFirstChild("Phoenix Volley") then 
+                            local remote = LocalPlayer.Character["Phoenix Volley"]:FindFirstChild("RemoteEvent")
+                            if remote then
+                                local tRoot = target.Character.HumanoidRootPart
+                                local targetPos = tRoot.Position + (tRoot.CFrame.LookVector * 2)
+                                remote:FireServer(Vector3.new(targetPos.X, targetPos.Y, targetPos.Z))
+                            end
+                        end
+                    end
+                    RunService.Heartbeat:Wait()
+                end
+            end)
+        end
+	end    
+})
+
+-- 6. TOGGLE: BOTÃO VISUAL NA TELA
+Tab:AddToggle({
+	Name = "Show Screen Button (Mobile)",
+	Default = false,
+	Callback = function(Value)
+		getgenv().ExternalButtonActive = Value
+        
+        if Value then
+            if CoreGui:FindFirstChild("ModernSpamUI") then CoreGui.ModernSpamUI:Destroy() end
+            
+            local ScreenGui = Instance.new("ScreenGui")
+            ScreenGui.Name = "ModernSpamUI"
+            ScreenGui.Parent = CoreGui
+            
+            -- Container Principal (Botão)
+            local MainBtn = Instance.new("TextButton")
+            MainBtn.Name = "MainBtn"
+            MainBtn.Parent = ScreenGui
+            MainBtn.Position = UDim2.new(0.85, 0, 0.55, 0)
+            MainBtn.Size = UDim2.new(0, 60, 0, 60)
+            MainBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+            MainBtn.Text = ""
+            MainBtn.AutoButtonColor = false -- Desativa cor padrão pra usarmos tween
+            MainBtn.Draggable = true
+            
+            -- Arredondamento
+            local UICorner = Instance.new("UICorner")
+            UICorner.CornerRadius = UDim.new(0, 16) -- Quadrado arredondado moderno
+            UICorner.Parent = MainBtn
+            
+            -- Borda Brilhante (Stroke)
+            local UIStroke = Instance.new("UIStroke")
+            UIStroke.Parent = MainBtn
+            UIStroke.Thickness = 2
+            UIStroke.Color = Color3.fromRGB(255, 50, 50) -- Começa Vermelho
+            UIStroke.Transparency = 0
+            
+            -- Gradiente (Opcional, dá um toque premium)
+            local UIGradient = Instance.new("UIGradient")
+            UIGradient.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
+            }
+            UIGradient.Rotation = 45
+            UIGradient.Parent = MainBtn
+            
+            -- Ícone / Texto de Status
+            local Icon = Instance.new("TextLabel")
+            Icon.Parent = MainBtn
+            Icon.Size = UDim2.new(1, 0, 1, 0)
+            Icon.BackgroundTransparency = 1
+            Icon.Text = "OFF"
+            Icon.TextColor3 = Color3.fromRGB(255, 50, 50)
+            Icon.Font = Enum.Font.GothamBlack
+            Icon.TextSize = 18
+            
+            -- Sombra (Para profundidade)
+            local Shadow = Instance.new("ImageLabel")
+            Shadow.Parent = MainBtn
+            Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+            Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+            Shadow.Size = UDim2.new(1, 15, 1, 15)
+            Shadow.BackgroundTransparency = 1
+            Shadow.Image = "rbxassetid://6015897843" -- ID de sombra genérica
+            Shadow.ImageColor3 = Color3.new(0,0,0)
+            Shadow.ImageTransparency = 0.5
+            Shadow.ZIndex = 0
+            
+            -- Lógica do Clique
+            MainBtn.MouseButton1Click:Connect(function()
+                getgenv().SpamActive = not getgenv().SpamActive
+                
+                if getgenv().SpamActive then
+                    -- ANIMAÇÃO LIGAR
+                    TweenService:Create(UIStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(0, 255, 100)}):Play()
+                    Icon.Text = "ON"
+                    Icon.TextColor3 = Color3.fromRGB(0, 255, 100)
+                    
+                    -- Reinicia Loop de Spam
+                    task.spawn(function()
+                        while getgenv().SpamActive do
+                            local target = getgenv().SelectedTarget
+                            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+                                local tool = LocalPlayer.Character:FindFirstChild("Phoenix Volley")
+                                if tool and tool:FindFirstChild("RemoteEvent") then
+                                    local tRoot = target.Character.HumanoidRootPart
+                                    local targetPos = tRoot.Position + (tRoot.CFrame.LookVector * 2)
+                                    tool.RemoteEvent:FireServer(Vector3.new(targetPos.X, targetPos.Y, targetPos.Z))
+                                end
+                            end
+                            RunService.Heartbeat:Wait()
+                        end
+                    end)
+                else
+                    -- ANIMAÇÃO DESLIGAR
+                    TweenService:Create(UIStroke, TweenInfo.new(0.3), {Color = Color3.fromRGB(255, 50, 50)}):Play()
+                    Icon.Text = "OFF"
+                    Icon.TextColor3 = Color3.fromRGB(255, 50, 50)
+                end
+                
+                -- Efeito de "Pulo" ao clicar
+                MainBtn:TweenSize(UDim2.new(0, 55, 0, 55), "Out", "Quad", 0.1, true)
+                task.wait(0.1)
+                MainBtn:TweenSize(UDim2.new(0, 60, 0, 60), "Out", "Bounce", 0.2, true)
+            end)
+            
+        else
+            if CoreGui:FindFirstChild("ModernSpamUI") then
+                CoreGui.ModernSpamUI:Destroy()
+            end
+            getgenv().SpamActive = false -- Desliga spam ao tirar o botão
+        end
+	end    
+})
